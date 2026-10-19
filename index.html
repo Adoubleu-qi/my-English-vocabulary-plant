@@ -31,26 +31,23 @@ input[type=text]:focus { border-color:var(--primary); }
 .tag { display:inline-block; background:#e0e7ff; color:#4338ca; padding:4px 10px; border-radius:6px; font-size:13px; margin:0 6px 6px 0; }
 .ex-item { margin-bottom:10px; padding-bottom:10px; border-bottom:1px dashed #e5e7eb; font-size:15px; line-height:1.5;}
 .ex-en { color:#111827; font-weight:500; }
-.ex-cn { color:#6b7280; font-size:14px; margin-top:4px; }
 .item { background:#fff; border-radius:14px; padding:16px; margin-bottom:12px; box-shadow:0 2px 8px rgba(0,0,0,.04);}
 .item .w { font-size:20px; font-weight:bold; color:#111827;}
 .item .m { font-size:14px; color:#6b7280; margin-top:6px; line-height:1.5;}
 .item .due { font-size:12px; color:#ea580c; margin-top:8px; font-weight:bold; display:inline-block; background:#ffedd5; padding:4px 10px; border-radius:6px;}
 .badge { display:inline-block; font-size:12px; padding:2px 8px; border-radius:8px; background:#e0e7ff; color:var(--primary); margin-left:8px; vertical-align:middle;}
 .empty { text-align:center; color:#9ca3af; padding:60px 0; font-size:15px; }
-.spinner { border: 3px solid #f3f3f3; border-top: 3px solid var(--primary); border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display:inline-block; vertical-align:middle; margin-right:8px;}
-@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
 <header>
   <span>单词学习 PRO</span>
-  <span id="status" class="loading">未加载词库</span>
+  <span id="status" class="loading">加载中...</span>
 </header>
 
 <div id="page-search" class="page active">
   <input id="q" type="text" placeholder="输入英文单词（如 propose）" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-  <button class="btn" onclick="doSearch()">深度查询</button>
+  <button class="btn" onclick="doSearch()">查询</button>
   <div id="result"></div>
 </div>
 
@@ -77,7 +74,6 @@ const VOCAB_KEY = 'vocab_data_v3';
 function loadVocab() { try { return JSON.parse(localStorage.getItem(VOCAB_KEY) || '[]'); } catch(e) { return []; } }
 function saveVocab(v) { localStorage.setItem(VOCAB_KEY, JSON.stringify(v)); }
 
-// 加载本地 CSV 词库
 async function loadDict() {
   const status = document.getElementById('status');
   try {
@@ -91,14 +87,14 @@ async function loadDict() {
       if (!line) continue;
       const f = parseCSV(line);
       if (f.length >= 2) {
+        // 这里的 s 代表同义词，e 代表例句
         DICT[f[0].toLowerCase()] = { w: f[0], m: f[1], s: f[2]||'', e: f[3]||'' };
         count++;
       }
     }
-    status.innerText = `本地词库: ${count} 词`;
+    status.innerText = `词库就绪 (${count} 词)`;
   } catch(e) {
-    DICT["propose"] = { w: "propose", m: "vi. 建议；求婚；打算", s: "", e: "" };
-    status.innerText = `演示词库`;
+    status.innerText = `词库加载失败`;
   }
 }
 
@@ -121,98 +117,44 @@ function showTab(name, btn) {
   if (name === 'review') document.getElementById('reviewBox').innerHTML = '';
 }
 
-// 核心查询逻辑：结合本地与在线 API
-async function doSearch() {
+function doSearch() {
   const q = document.getElementById('q').value.trim().toLowerCase();
   if (!q) return;
+  const item = DICT[q];
   const box = document.getElementById('result');
-  const localItem = DICT[q];
   
-  // 渲染基础信息
-  let html = `<div class="card"><h2>${esc(q)}</h2><div id="online-data"><span class="spinner"></span><span style="color:#6b7280;font-size:14px">正在从在线词典获取例句、同反义词、短语...</span></div>`;
+  if (!item) { box.innerHTML = '<div class="empty">本地词库中未找到该词</div>'; return; }
   
-  if (localItem) {
-    html += `<div class="field" style="margin-top:16px;">
-      <div class="field-title">本地释义</div>
-      <div class="detail-box">${esc(localItem.m)}</div>
-    </div>`;
-  }
-  box.innerHTML = html + `<div id="btn-area"></div></div>`;
+  let html = `<div class="card"><h2>${esc(item.w)}</h2>`;
+  
+  html += `<div class="field"><div class="field-title">释义</div><div class="detail-box">${esc(item.m)}</div></div>`;
 
-  // 异步请求在线词典 API (Free Dictionary API)
-  let apiData = null;
-  try {
-    const resp = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${q}`);
-    if(resp.ok) {
-      apiData = await resp.json();
-    }
-  } catch(e) { console.log("API error", e); }
-
-  // 渲染在线数据
-  const onlineBox = document.getElementById('online-data');
-  if (apiData && apiData[0]) {
-    const data = apiData[0];
-    let onlineHtml = '';
-    
-    // 音标
-    if(data.phonetic) onlineHtml += `<div class="phonetic">${esc(data.phonetic)}</div>`;
-    
-    // 解析释义、同义词、反义词、例句
-    let allSynonyms = new Set();
-    let allAntonyms = new Set();
-    let examplesHtml = '';
-    
-    data.meanings.forEach(meaning => {
-      if(meaning.synonyms) meaning.synonyms.forEach(s => allSynonyms.add(s));
-      if(meaning.antonyms) meaning.antonyms.forEach(a => allAntonyms.add(a));
-      
-      meaning.definitions.forEach(def => {
-        if(def.synonyms) def.synonyms.forEach(s => allSynonyms.add(s));
-        if(def.antonyms) def.antonyms.forEach(a => allAntonyms.add(a));
-        if(def.example) {
-          examplesHtml += `<div class="ex-item"><div class="ex-en">"${esc(def.example)}"</div></div>`;
-        }
-      });
+  // 如果有同义词，就展示同义词
+  if (item.s) {
+    html += `<div class="field"><div class="field-title">同义词 / 词形变化</div>`;
+    item.s.split(',').forEach(s => {
+      if(s.trim()) html += `<span class="tag">${esc(s.trim())}</span>`;
     });
+    html += `</div>`;
+  }
 
-    // 同义词/反义词
-    if(allSynonyms.size > 0) {
-      onlineHtml += `<div class="field"><div class="field-title">同义词 (Synonyms)</div>`;
-      let syns = Array.from(allSynonyms).slice(0, 10);
-      syns.forEach(s => onlineHtml += `<span class="tag">${esc(s)}</span>`);
-      onlineHtml += `</div>`;
-    }
-    
-    if(allAntonyms.size > 0) {
-      onlineHtml += `<div class="field"><div class="field-title">反义词 (Antonyms)</div>`;
-      let ants = Array.from(allAntonyms).slice(0, 10);
-      ants.forEach(a => onlineHtml += `<span class="tag" style="background:#fee2e2;color:#b91c1c;">${esc(a)}</span>`);
-      onlineHtml += `</div>`;
-    }
-
-    // 例句
-    if(examplesHtml) {
-      onlineHtml += `<div class="field"><div class="field-title">权威例句 (Examples)</div>${examplesHtml}</div>`;
-    }
-
-    // 短语搭配 (如果英文里有，这里简略提取，通常不单独提供)
-    onlineHtml += `<div class="field"><div class="field-title">词根词缀 & 短语</div>
-      <div style="color:#6b7280;font-size:14px;font-style:italic;">词根词缀属于进阶语言学内容，免费开源接口暂不支持。短语搭配通常融合在例句中展示。</div>
+  // 如果有例句，就展示例句
+  if (item.e) {
+    html += `<div class="field"><div class="field-title">例句</div>
+      <div class="ex-item"><div class="ex-en">"${esc(item.e)}"</div></div>
     </div>`;
-
-    onlineBox.innerHTML = onlineHtml;
-  } else {
-    onlineBox.innerHTML = `<div style="color:#9ca3af;font-size:13px;margin-bottom:10px;">未找到在线扩展信息（可能是无网络或接口限制）。</div>`;
   }
 
-  // 按钮区域
-  const btnArea = document.getElementById('btn-area');
+  // 如果既没有同义词也没有例句，给个提示
+  if (!item.s && !item.e) {
+    html += `<div style="color:#9ca3af;font-size:13px;margin:10px 0;">当前词库不包含该词的同义词和例句（需替换带有扩展数据的词库）。</div>`;
+  }
+
   const vi = isInVocab(q);
-  if (vi >= 0) {
-    btnArea.innerHTML = `<button class="btn gray" style="margin-top:20px;" onclick="removeVocab('${escAttr(q)}')">从生词本移除</button>`;
-  } else {
-    btnArea.innerHTML = `<button class="btn" style="margin-top:20px;" onclick="addVocab('${escAttr(q)}')">加入生词本</button>`;
-  }
+  if (vi >= 0) html += `<button class="btn gray" style="margin-top:20px;" onclick="removeVocab('${escAttr(q)}')">从生词本移除</button>`;
+  else html += `<button class="btn" style="margin-top:20px;" onclick="addVocab('${escAttr(q)}')">加入生词本</button>`;
+
+  box.innerHTML = html + `</div>`;
 }
 
 function isInVocab(w) { return loadVocab().findIndex(v => v.word.toLowerCase() === w.toLowerCase()); }
@@ -231,7 +173,6 @@ function renderVocab() {
   }).join('');
 }
 
-// SRS 逻辑保持不变...
 let rQueue = [], rCur = 0, rMode = 1;
 function startReview(onlyDue) {
   const now = Date.now() / 1000;
