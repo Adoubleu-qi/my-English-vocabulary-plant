@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>单词学习</title>
+<style>
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body { margin:0; font-family:-apple-system,"HarmonyOS Sans",sans-serif; background:#f5f6fa; color:#222; padding-bottom:70px; }
+header { background:#3b6ef6; color:#fff; padding:16px; font-size:20px; font-weight:600; position:sticky; top:0; z-index:10; display:flex; justify-content:space-between; align-items:center;}
+.loading { font-size:13px; font-weight:normal; opacity:0.8; }
+.tabbar { position:fixed; bottom:0; left:0; right:0; display:flex; background:#fff; border-top:1px solid #e5e5e5; padding-bottom:env(safe-area-inset-bottom); }
+.tabbar button { flex:1; border:0; background:none; padding:12px 0; font-size:15px; color:#888; font-weight:500;}
+.tabbar button.active { color:#3b6ef6; font-weight:bold; }
+.page { display:none; padding:16px; }
+.page.active { display:block; }
+input[type=text] { width:100%; padding:14px; font-size:16px; border:1px solid #ddd; border-radius:12px; outline:none; }
+input[type=text]:focus { border-color:#3b6ef6; }
+.btn { display:inline-block; padding:12px 20px; border-radius:12px; border:0; background:#3b6ef6; color:#fff; font-size:16px; margin-top:10px; font-weight:500; cursor:pointer;}
+.btn.gray { background:#f0f0f0; color:#333; }
+.btn:active { opacity:0.8; }
+.card { background:#fff; border-radius:16px; padding:20px; margin-top:16px; box-shadow:0 4px 12px rgba(0,0,0,.04); }
+.card h2 { margin:0 0 12px; font-size:26px; color:#111;}
+.field { margin:8px 0; font-size:16px; line-height:1.6; color:#444; }
+.field b { color:#3b6ef6; font-weight:600; }
+.item { background:#fff; border-radius:14px; padding:16px; margin-bottom:12px; box-shadow:0 2px 8px rgba(0,0,0,.03);}
+.item .w { font-size:18px; font-weight:bold; }
+.item .m { font-size:14px; color:#666; margin-top:6px; line-height:1.4;}
+.item .due { font-size:12px; color:#e67e22; margin-top:8px; font-weight:bold; display:inline-block; background:#fdf3e8; padding:2px 8px; border-radius:6px;}
+.badge { display:inline-block; font-size:12px; padding:2px 8px; border-radius:8px; background:#eef2ff; color:#3b6ef6; margin-left:8px; vertical-align:middle;}
+.empty { text-align:center; color:#aaa; padding:60px 0; font-size:15px; }
+</style>
+</head>
+<body>
+<header>
+  <span>单词学习</span>
+  <span id="status" class="loading">未加载词库</span>
+</header>
+
+<div id="page-search" class="page active">
+  <input id="q" type="text" placeholder="输入英文单词" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+  <button class="btn" style="width:100%" onclick="doSearch()">查询</button>
+  <div id="result"></div>
+</div>
+
+<div id="page-vocab" class="page">
+  <div id="vocabList"></div>
+</div>
+
+<div id="page-review" class="page">
+  <button class="btn gray" onclick="startReview(false)">复习所有词</button>
+  <button class="btn" onclick="startReview(true)">仅复习到期词</button>
+  <div id="reviewBox"></div>
+</div>
+
+<div class="tabbar">
+  <button class="active" onclick="showTab('search',this)">查词</button>
+  <button onclick="showTab('vocab',this)">生词本</button>
+  <button onclick="showTab('review',this)">复习</button>
+</div>
+
+<script>
+let DICT = {}; 
+const VOCAB_KEY = 'vocab_data_v2';
+
+function loadVocab() { try { return JSON.parse(localStorage.getItem(VOCAB_KEY) || '[]'); } catch(e) { return []; } }
+function saveVocab(v) { localStorage.setItem(VOCAB_KEY, JSON.stringify(v)); }
+
+async function loadDict() {
+  const status = document.getElementById('status');
+  try {
+    const resp = await fetch('dictionary.csv');
+    if (!resp.ok) throw new Error('no file');
+    const text = await resp.text();
+    const lines = text.split('\n');
+    let count = 0;
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      const f = parseCSV(line);
+      if (f.length >= 2) {
+        DICT[f[0].toLowerCase()] = { w: f[0], m: f[1], s: f[2]||'', e: f[3]||'' };
+        count++;
+      }
+    }
+    status.innerText = `词库: ${count} 词`;
+  } catch(e) {
+    DICT["hello"] = { w: "hello", m: "int. 喂；哈罗", s: "hi, greeting", e: "Hello, how are you?" };
+    DICT["run"] = { w: "run", m: "v. 跑；运行", s: "jog, sprint", e: "I run every morning." };
+    DICT["apple"] = { w: "apple", m: "n. 苹果", s: "fruit", e: "An apple a day keeps the doctor away." };
+    status.innerText = `演示词库(3词)`;
+  }
+}
+
+function parseCSV(line) {
+  const out = []; let cur = '', q = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (q) { if (c === '"' && line[i+1] === '"') { cur += '"'; i++; } else if (c === '"') q = false; else cur += c; }
+    else { if (c === '"') q = true; else if (c === ',') { out.push(cur); cur = ''; } else cur += c; }
+  }
+  out.push(cur); return out;
+}
+
+function showTab(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelectorAll('.tabbar button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (name === 'vocab') renderVocab();
+  if (name === 'review') document.getElementById('reviewBox').innerHTML = '';
+}
+
+function doSearch() {
+  const q = document.getElementById('q').value.trim().toLowerCase();
+  if (!q) return;
+  const item = DICT[q];
+  const box = document.getElementById('result');
+  if (!item) { box.innerHTML = '<div class="empty">词库中未找到该词<br>试试: hello, run, apple</div>'; return; }
+  
+  const vi = isInVocab(item.w);
+  let html = `<div class="card"><h2>${esc(item.w)}</h2><div class="field"><b>释义：</b>${esc(item.m)}</div>`;
+  if (item.s) html += `<div class="field"><b>同义词：</b>${esc(item.s)}</div>`;
+  if (item.e) html += `<div class="field"><b>例句：</b>${esc(item.e)}</div>`;
+  html += `<div style="margin-top:16px">`;
+  if (vi >= 0) html += `<button class="btn gray" onclick="removeVocab('${escAttr(item.w)}')">从生词本移除</button>`;
+  else html += `<button class="btn" onclick="addVocab('${escAttr(item.w)}')">加入生词本</button>`;
+  box.innerHTML = html + `</div></div>`;
+}
+
+function isInVocab(w) { return loadVocab().findIndex(v => v.word.toLowerCase() === w.toLowerCase()); }
+function addVocab(w) { const v = loadVocab(); if (v.findIndex(x => x.word.toLowerCase() === w.toLowerCase()) >= 0) return; v.push({ word: w, ease: 3, interval: 0, reps: 0, lapses: 0, due: 0 }); saveVocab(v); doSearch(); }
+function removeVocab(w) { const v = loadVocab().filter(x => x.word.toLowerCase() !== w.toLowerCase()); saveVocab(v); doSearch(); }
+
+function renderVocab() {
+  const v = loadVocab();
+  const box = document.getElementById('vocabList');
+  if (v.length === 0) { box.innerHTML = '<div class="empty">生词本空空如也<br>快去查词加进来吧</div>'; return; }
+  const now = Date.now() / 1000;
+  box.innerHTML = v.map(it => {
+    const mean = DICT[it.word.toLowerCase()] ? DICT[it.word.toLowerCase()].m : '(词库未收录)';
+    const due = it.due <= now ? '<div class="due">⏰ 待复习</div>' : '';
+    return `<div class="item"><div class="w">${esc(it.word)}<span class="badge">熟练度 ${it.ease}</span></div><div class="m">${esc(mean)}</div>${due}</div>`;
+  }).join('');
+}
+
+let rQueue = [], rCur = 0, rMode = 1;
+function startReview(onlyDue) {
+  const now = Date.now() / 1000;
+  const v = loadVocab();
+  rQueue = onlyDue ? v.filter(x => x.due <= now) : v.slice();
+  if (rQueue.length === 0) { document.getElementById('reviewBox').innerHTML = '<div class="empty">没有需要复习的词</div>'; return; }
+  rCur = 0; rMode = Math.random() < 0.5 ? 1 : 2; renderReviewCard();
+}
+
+function renderReviewCard() {
+  if (rCur >= rQueue.length) { document.getElementById('reviewBox').innerHTML = '<div class="empty">本轮复习完成 🎉</div>'; return; }
+  const it = rQueue[rCur], dict = DICT[it.word.toLowerCase()];
+  if (!dict) { rCur++; renderReviewCard(); return; }
+  const box = document.getElementById('reviewBox');
+  if (rMode === 1) {
+    box.innerHTML = `<div class="card"><div class="field" style="color:#888">【中译英】看释义拼英文</div>
+      <div class="field" style="font-size:18px;margin:16px 0"><b>释义：</b>${esc(dict.m)}</div>
+      ${dict.s ? `<div class="field" style="font-size:14px;color:#888">提示：${esc(dict.s)}</div>` : ''}
+      <input id="ans" type="text" placeholder="在此输入英文" autocapitalize="off" spellcheck="false" style="margin-top:16px">
+      <button class="btn" style="width:100%" onclick="checkReview()">提交答案</button></div>`;
+  } else {
+    box.innerHTML = `<div class="card"><div class="field" style="color:#888">【英译中】看英文想中文</div>
+      <h2 style="font-size:32px;margin:16px 0">${esc(dict.w)}</h2>
+      ${dict.e ? `<div class="field" style="font-size:14px;color:#888">例句：${esc(dict.e)}</div>` : ''}
+      <input id="ans" type="text" placeholder="在此输入中文释义" style="margin-top:16px">
+      <button class="btn" style="width:100%" onclick="checkReview()">提交答案</button></div>`;
+  }
+}
+
+function checkReview() {
+  const it = rQueue[rCur], dict = DICT[it.word.toLowerCase()];
+  const ans = (document.getElementById('ans').value || '').trim();
+  let ok = false;
+  if (rMode === 1) ok = ans.toLowerCase() === dict.w.toLowerCase();
+  else ok = dict.m.includes(ans) || (ans.length > 0 && ans.includes(dict.m.split('；')[0].split(';')[0].replace(/[a-zA-Z.]/g, '').trim()));
+
+  const v = loadVocab(), vi = v.findIndex(x => x.word.toLowerCase() === it.word.toLowerCase()), now = Date.now() / 1000;
+  if (vi >= 0) {
+    const item = v[vi];
+    if (ok) {
+      item.reps++; if (item.interval === 0) item.interval = 1; else if (item.interval === 1) item.interval = 3; else item.interval = Math.min(365, Math.floor(item.interval * (item.ease + 1) / 2));
+      if (item.ease < 5) item.ease++; item.due = now + item.interval * 86400;
+    } else {
+      item.lapses++; item.reps = 0; item.interval = 0; if (item.ease > 1) item.ease--; item.due = now + 600;
+    }
+    saveVocab(v);
+  }
+
+  const box = document.getElementById('reviewBox'), correctAns = rMode === 1 ? dict.w : dict.m;
+  box.innerHTML = `<div class="card"><div class="field" style="font-size:24px;color:${ok ? '#2ecc71' : '#e74c3c'};margin-bottom:16px">${ok ? '✔ 完全正确' : '✘ 回答错误'}</div>
+    <div class="field"><b>正确答案：</b>${esc(correctAns)}</div>
+    <button class="btn gray" style="width:100%;margin-top:20px" onclick="nextReview()">下一个</button></div>`;
+}
+
+function nextReview() { rCur++; rMode = Math.random() < 0.5 ? 1 : 2; renderReviewCard(); }
+function esc(s) { return (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function escAttr(s) { return (s||'').replace(/'/g, "\\'"); }
+loadDict();
+</script>
+</body>
+</html>
