@@ -3,43 +3,54 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>单词学习</title>
+<title>单词学习 PRO</title>
 <style>
+:root { --primary: #4f46e5; --bg: #f3f4f6; --text: #1f2937; --card: #ffffff; }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-body { margin:0; font-family:-apple-system,"HarmonyOS Sans",sans-serif; background:#f5f6fa; color:#222; padding-bottom:70px; }
-header { background:#3b6ef6; color:#fff; padding:16px; font-size:20px; font-weight:600; position:sticky; top:0; z-index:10; display:flex; justify-content:space-between; align-items:center;}
+body { margin:0; font-family:-apple-system,"HarmonyOS Sans",system-ui,sans-serif; background:var(--bg); color:var(--text); padding-bottom:70px; }
+header { background:var(--primary); color:#fff; padding:16px; font-size:20px; font-weight:600; position:sticky; top:0; z-index:10; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 10px rgba(79,70,229,.2);}
 .loading { font-size:13px; font-weight:normal; opacity:0.8; }
-.tabbar { position:fixed; bottom:0; left:0; right:0; display:flex; background:#fff; border-top:1px solid #e5e5e5; padding-bottom:env(safe-area-inset-bottom); }
-.tabbar button { flex:1; border:0; background:none; padding:12px 0; font-size:15px; color:#888; font-weight:500;}
-.tabbar button.active { color:#3b6ef6; font-weight:bold; }
-.page { display:none; padding:16px; }
-.page.active { display:block; }
-input[type=text] { width:100%; padding:14px; font-size:16px; border:1px solid #ddd; border-radius:12px; outline:none; }
-input[type=text]:focus { border-color:#3b6ef6; }
-.btn { display:inline-block; padding:12px 20px; border-radius:12px; border:0; background:#3b6ef6; color:#fff; font-size:16px; margin-top:10px; font-weight:500; cursor:pointer;}
-.btn.gray { background:#f0f0f0; color:#333; }
+.tabbar { position:fixed; bottom:0; left:0; right:0; display:flex; background:#fff; border-top:1px solid #e5e7eb; padding-bottom:env(safe-area-inset-bottom); z-index:10;}
+.tabbar button { flex:1; border:0; background:none; padding:12px 0; font-size:15px; color:#6b7280; font-weight:500; transition:all 0.2s;}
+.tabbar button.active { color:var(--primary); font-weight:bold; }
+.page { display:none; padding:16px; max-width: 800px; margin: 0 auto; }
+.page.active { display:block; animation: fadeIn 0.3s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+input[type=text] { width:100%; padding:14px 16px; font-size:16px; border:2px solid #e5e7eb; border-radius:12px; outline:none; transition:border 0.2s; background:#fff; }
+input[type=text]:focus { border-color:var(--primary); }
+.btn { display:inline-flex; justify-content:center; align-items:center; padding:12px 20px; border-radius:12px; border:0; background:var(--primary); color:#fff; font-size:16px; margin-top:12px; font-weight:600; cursor:pointer; transition: opacity 0.2s; width:100%;}
+.btn.gray { background:#e5e7eb; color:#374151; }
 .btn:active { opacity:0.8; }
-.card { background:#fff; border-radius:16px; padding:20px; margin-top:16px; box-shadow:0 4px 12px rgba(0,0,0,.04); }
-.card h2 { margin:0 0 12px; font-size:26px; color:#111;}
-.field { margin:8px 0; font-size:16px; line-height:1.6; color:#444; }
-.field b { color:#3b6ef6; font-weight:600; }
-.item { background:#fff; border-radius:14px; padding:16px; margin-bottom:12px; box-shadow:0 2px 8px rgba(0,0,0,.03);}
-.item .w { font-size:18px; font-weight:bold; }
-.item .m { font-size:14px; color:#666; margin-top:6px; line-height:1.4;}
-.item .due { font-size:12px; color:#e67e22; margin-top:8px; font-weight:bold; display:inline-block; background:#fdf3e8; padding:2px 8px; border-radius:6px;}
-.badge { display:inline-block; font-size:12px; padding:2px 8px; border-radius:8px; background:#eef2ff; color:#3b6ef6; margin-left:8px; vertical-align:middle;}
-.empty { text-align:center; color:#aaa; padding:60px 0; font-size:15px; }
+.card { background:var(--card); border-radius:16px; padding:20px; margin-top:16px; box-shadow:0 4px 20px rgba(0,0,0,.05); }
+.card h2 { margin:0 0 4px; font-size:28px; color:#111827; font-family: Georgia, serif;}
+.phonetic { font-size:15px; color:#6b7280; margin-bottom:16px; font-family: monospace;}
+.field { margin:12px 0; font-size:16px; line-height:1.6; color:#374151; }
+.field-title { font-weight:bold; color:var(--primary); font-size:14px; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; display:flex; align-items:center;}
+.field-title::after { content:""; flex:1; height:1px; background:#e5e7eb; margin-left:10px; }
+.detail-box { background:#f8fafc; border-left:4px solid var(--primary); padding:12px; border-radius:0 8px 8px 0; margin-bottom:12px;}
+.tag { display:inline-block; background:#e0e7ff; color:#4338ca; padding:4px 10px; border-radius:6px; font-size:13px; margin:0 6px 6px 0; }
+.ex-item { margin-bottom:10px; padding-bottom:10px; border-bottom:1px dashed #e5e7eb; font-size:15px; line-height:1.5;}
+.ex-en { color:#111827; font-weight:500; }
+.ex-cn { color:#6b7280; font-size:14px; margin-top:4px; }
+.item { background:#fff; border-radius:14px; padding:16px; margin-bottom:12px; box-shadow:0 2px 8px rgba(0,0,0,.04);}
+.item .w { font-size:20px; font-weight:bold; color:#111827;}
+.item .m { font-size:14px; color:#6b7280; margin-top:6px; line-height:1.5;}
+.item .due { font-size:12px; color:#ea580c; margin-top:8px; font-weight:bold; display:inline-block; background:#ffedd5; padding:4px 10px; border-radius:6px;}
+.badge { display:inline-block; font-size:12px; padding:2px 8px; border-radius:8px; background:#e0e7ff; color:var(--primary); margin-left:8px; vertical-align:middle;}
+.empty { text-align:center; color:#9ca3af; padding:60px 0; font-size:15px; }
+.spinner { border: 3px solid #f3f3f3; border-top: 3px solid var(--primary); border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display:inline-block; vertical-align:middle; margin-right:8px;}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
 <header>
-  <span>单词学习</span>
+  <span>单词学习 PRO</span>
   <span id="status" class="loading">未加载词库</span>
 </header>
 
 <div id="page-search" class="page active">
-  <input id="q" type="text" placeholder="输入英文单词" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-  <button class="btn" style="width:100%" onclick="doSearch()">查询</button>
+  <input id="q" type="text" placeholder="输入英文单词（如 propose）" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+  <button class="btn" onclick="doSearch()">深度查询</button>
   <div id="result"></div>
 </div>
 
@@ -61,11 +72,12 @@ input[type=text]:focus { border-color:#3b6ef6; }
 
 <script>
 let DICT = {}; 
-const VOCAB_KEY = 'vocab_data_v2';
+const VOCAB_KEY = 'vocab_data_v3';
 
 function loadVocab() { try { return JSON.parse(localStorage.getItem(VOCAB_KEY) || '[]'); } catch(e) { return []; } }
 function saveVocab(v) { localStorage.setItem(VOCAB_KEY, JSON.stringify(v)); }
 
+// 加载本地 CSV 词库
 async function loadDict() {
   const status = document.getElementById('status');
   try {
@@ -83,12 +95,10 @@ async function loadDict() {
         count++;
       }
     }
-    status.innerText = `词库: ${count} 词`;
+    status.innerText = `本地词库: ${count} 词`;
   } catch(e) {
-    DICT["hello"] = { w: "hello", m: "int. 喂；哈罗", s: "hi, greeting", e: "Hello, how are you?" };
-    DICT["run"] = { w: "run", m: "v. 跑；运行", s: "jog, sprint", e: "I run every morning." };
-    DICT["apple"] = { w: "apple", m: "n. 苹果", s: "fruit", e: "An apple a day keeps the doctor away." };
-    status.innerText = `演示词库(3词)`;
+    DICT["propose"] = { w: "propose", m: "vi. 建议；求婚；打算", s: "", e: "" };
+    status.innerText = `演示词库`;
   }
 }
 
@@ -111,21 +121,98 @@ function showTab(name, btn) {
   if (name === 'review') document.getElementById('reviewBox').innerHTML = '';
 }
 
-function doSearch() {
+// 核心查询逻辑：结合本地与在线 API
+async function doSearch() {
   const q = document.getElementById('q').value.trim().toLowerCase();
   if (!q) return;
-  const item = DICT[q];
   const box = document.getElementById('result');
-  if (!item) { box.innerHTML = '<div class="empty">词库中未找到该词<br>试试: hello, run, apple</div>'; return; }
+  const localItem = DICT[q];
   
-  const vi = isInVocab(item.w);
-  let html = `<div class="card"><h2>${esc(item.w)}</h2><div class="field"><b>释义：</b>${esc(item.m)}</div>`;
-  if (item.s) html += `<div class="field"><b>同义词：</b>${esc(item.s)}</div>`;
-  if (item.e) html += `<div class="field"><b>例句：</b>${esc(item.e)}</div>`;
-  html += `<div style="margin-top:16px">`;
-  if (vi >= 0) html += `<button class="btn gray" onclick="removeVocab('${escAttr(item.w)}')">从生词本移除</button>`;
-  else html += `<button class="btn" onclick="addVocab('${escAttr(item.w)}')">加入生词本</button>`;
-  box.innerHTML = html + `</div></div>`;
+  // 渲染基础信息
+  let html = `<div class="card"><h2>${esc(q)}</h2><div id="online-data"><span class="spinner"></span><span style="color:#6b7280;font-size:14px">正在从在线词典获取例句、同反义词、短语...</span></div>`;
+  
+  if (localItem) {
+    html += `<div class="field" style="margin-top:16px;">
+      <div class="field-title">本地释义</div>
+      <div class="detail-box">${esc(localItem.m)}</div>
+    </div>`;
+  }
+  box.innerHTML = html + `<div id="btn-area"></div></div>`;
+
+  // 异步请求在线词典 API (Free Dictionary API)
+  let apiData = null;
+  try {
+    const resp = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${q}`);
+    if(resp.ok) {
+      apiData = await resp.json();
+    }
+  } catch(e) { console.log("API error", e); }
+
+  // 渲染在线数据
+  const onlineBox = document.getElementById('online-data');
+  if (apiData && apiData[0]) {
+    const data = apiData[0];
+    let onlineHtml = '';
+    
+    // 音标
+    if(data.phonetic) onlineHtml += `<div class="phonetic">${esc(data.phonetic)}</div>`;
+    
+    // 解析释义、同义词、反义词、例句
+    let allSynonyms = new Set();
+    let allAntonyms = new Set();
+    let examplesHtml = '';
+    
+    data.meanings.forEach(meaning => {
+      if(meaning.synonyms) meaning.synonyms.forEach(s => allSynonyms.add(s));
+      if(meaning.antonyms) meaning.antonyms.forEach(a => allAntonyms.add(a));
+      
+      meaning.definitions.forEach(def => {
+        if(def.synonyms) def.synonyms.forEach(s => allSynonyms.add(s));
+        if(def.antonyms) def.antonyms.forEach(a => allAntonyms.add(a));
+        if(def.example) {
+          examplesHtml += `<div class="ex-item"><div class="ex-en">"${esc(def.example)}"</div></div>`;
+        }
+      });
+    });
+
+    // 同义词/反义词
+    if(allSynonyms.size > 0) {
+      onlineHtml += `<div class="field"><div class="field-title">同义词 (Synonyms)</div>`;
+      let syns = Array.from(allSynonyms).slice(0, 10);
+      syns.forEach(s => onlineHtml += `<span class="tag">${esc(s)}</span>`);
+      onlineHtml += `</div>`;
+    }
+    
+    if(allAntonyms.size > 0) {
+      onlineHtml += `<div class="field"><div class="field-title">反义词 (Antonyms)</div>`;
+      let ants = Array.from(allAntonyms).slice(0, 10);
+      ants.forEach(a => onlineHtml += `<span class="tag" style="background:#fee2e2;color:#b91c1c;">${esc(a)}</span>`);
+      onlineHtml += `</div>`;
+    }
+
+    // 例句
+    if(examplesHtml) {
+      onlineHtml += `<div class="field"><div class="field-title">权威例句 (Examples)</div>${examplesHtml}</div>`;
+    }
+
+    // 短语搭配 (如果英文里有，这里简略提取，通常不单独提供)
+    onlineHtml += `<div class="field"><div class="field-title">词根词缀 & 短语</div>
+      <div style="color:#6b7280;font-size:14px;font-style:italic;">词根词缀属于进阶语言学内容，免费开源接口暂不支持。短语搭配通常融合在例句中展示。</div>
+    </div>`;
+
+    onlineBox.innerHTML = onlineHtml;
+  } else {
+    onlineBox.innerHTML = `<div style="color:#9ca3af;font-size:13px;margin-bottom:10px;">未找到在线扩展信息（可能是无网络或接口限制）。</div>`;
+  }
+
+  // 按钮区域
+  const btnArea = document.getElementById('btn-area');
+  const vi = isInVocab(q);
+  if (vi >= 0) {
+    btnArea.innerHTML = `<button class="btn gray" style="margin-top:20px;" onclick="removeVocab('${escAttr(q)}')">从生词本移除</button>`;
+  } else {
+    btnArea.innerHTML = `<button class="btn" style="margin-top:20px;" onclick="addVocab('${escAttr(q)}')">加入生词本</button>`;
+  }
 }
 
 function isInVocab(w) { return loadVocab().findIndex(v => v.word.toLowerCase() === w.toLowerCase()); }
@@ -144,6 +231,7 @@ function renderVocab() {
   }).join('');
 }
 
+// SRS 逻辑保持不变...
 let rQueue = [], rCur = 0, rMode = 1;
 function startReview(onlyDue) {
   const now = Date.now() / 1000;
@@ -159,17 +247,15 @@ function renderReviewCard() {
   if (!dict) { rCur++; renderReviewCard(); return; }
   const box = document.getElementById('reviewBox');
   if (rMode === 1) {
-    box.innerHTML = `<div class="card"><div class="field" style="color:#888">【中译英】看释义拼英文</div>
-      <div class="field" style="font-size:18px;margin:16px 0"><b>释义：</b>${esc(dict.m)}</div>
-      ${dict.s ? `<div class="field" style="font-size:14px;color:#888">提示：${esc(dict.s)}</div>` : ''}
+    box.innerHTML = `<div class="card"><div class="field-title" style="color:#6b7280">【中译英】看释义拼英文</div>
+      <div class="detail-box" style="font-size:18px;margin:16px 0;">${esc(dict.m)}</div>
       <input id="ans" type="text" placeholder="在此输入英文" autocapitalize="off" spellcheck="false" style="margin-top:16px">
-      <button class="btn" style="width:100%" onclick="checkReview()">提交答案</button></div>`;
+      <button class="btn" onclick="checkReview()">提交答案</button></div>`;
   } else {
-    box.innerHTML = `<div class="card"><div class="field" style="color:#888">【英译中】看英文想中文</div>
+    box.innerHTML = `<div class="card"><div class="field-title" style="color:#6b7280">【英译中】看英文想中文</div>
       <h2 style="font-size:32px;margin:16px 0">${esc(dict.w)}</h2>
-      ${dict.e ? `<div class="field" style="font-size:14px;color:#888">例句：${esc(dict.e)}</div>` : ''}
       <input id="ans" type="text" placeholder="在此输入中文释义" style="margin-top:16px">
-      <button class="btn" style="width:100%" onclick="checkReview()">提交答案</button></div>`;
+      <button class="btn" onclick="checkReview()">提交答案</button></div>`;
   }
 }
 
@@ -193,9 +279,9 @@ function checkReview() {
   }
 
   const box = document.getElementById('reviewBox'), correctAns = rMode === 1 ? dict.w : dict.m;
-  box.innerHTML = `<div class="card"><div class="field" style="font-size:24px;color:${ok ? '#2ecc71' : '#e74c3c'};margin-bottom:16px">${ok ? '✔ 完全正确' : '✘ 回答错误'}</div>
-    <div class="field"><b>正确答案：</b>${esc(correctAns)}</div>
-    <button class="btn gray" style="width:100%;margin-top:20px" onclick="nextReview()">下一个</button></div>`;
+  box.innerHTML = `<div class="card"><div class="field" style="font-size:24px;color:${ok ? '#10b981' : '#ef4444'};margin-bottom:16px;font-weight:bold;">${ok ? '✔ 完全正确' : '✘ 回答错误'}</div>
+    <div class="detail-box"><b>正确答案：</b>${esc(correctAns)}</div>
+    <button class="btn gray" style="margin-top:20px" onclick="nextReview()">下一个</button></div>`;
 }
 
 function nextReview() { rCur++; rMode = Math.random() < 0.5 ? 1 : 2; renderReviewCard(); }
